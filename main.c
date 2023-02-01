@@ -95,13 +95,36 @@ void mxc400_init()
 
 }
 
+uint16_t convert(uint16_t v)
+{
+	if(v >= 2048)
+	{
+		v = v - 1;
+		v = ~ v;
+		v = v & 4095;
+	}
+	return v;
+}
 
+uint16_t diference(uint16_t current, uint16_t ant )
+{
+	uint16_t dif = 0;
+	if(current < ant)
+	{
+		dif = (ant - current);
+	}
+	else
+	{
+		dif = (current - ant);
+	}
+	return dif;
+}
 main()
 {
 	Serial_begin(9600);
 	GPIO_setup();
 	mxc400_init();
-	
+	/*
 	X_Hant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
 	X_Lant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_LOWER);
 		
@@ -114,72 +137,53 @@ main()
 	Xant = (X_Hant<<4)+(X_Lant>>4);
 	Yant = (Y_Hant<<4)+(Y_Lant>>4);
 	Zant = (Z_Hant<<4)+(Z_Lant>>4);
-
+	*/
 while (1)
 {
 	
 
 	X_H = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
 	X_L = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_LOWER);
-		
+
 	Y_H = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_YOUT_UPPER);
 	Y_L = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_YOUT_LOWER);
 	
 	Z_H = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_UPPER);
 	Z_L = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_LOWER);
 	
-	X = (X_H<<4)+(X_L>>4);
-	Y = (Y_H<<4)+(Y_L>>4);
-	Z = (Z_H<<4)+(Z_L>>4);
+	X = (X_H << 4)+(X_L >> 4);
+	Y = (Y_H<<4)+( Y_L >>4);
+	Z = (Z_H<<4)+( Z_L >>4);
+	
+	X = convert(X);
+	Y = convert(Y);
+	Z = convert(Z);
+	
+	difX = diference(X, Xant);
+	difY = diference(Y, Yant);
+	difZ = diference(Z, Zant);
 	
 
+	Serial_print_string ("X: ");
+	Serial_print_int(difX);
+	Serial_newtab();
+	Serial_print_string (" Y: ");
+	Serial_print_int(difY);
+	Serial_newtab();
+	Serial_print_string (" Z: ");
+	Serial_print_int(difZ);
+	Serial_newline();
 	
-	if(X<Xant)
+	if((difX >= X_TH) || (difY >= Y_TH) || (difZ >= Z_TH))
 	{
-		difX = (Xant - X);
+		GPIO_WriteLow(GPIOC, Led);
+		delay(100);
 	}
 	else
-	{
-		difX = (X - Xant);
-	}
-	////////////////////////////////////
-		if(Y<Yant)
-	{
-		difY = (Yant - Y);
-	}
-	else
-	{
-		difY = (Y - Yant);
-	}
-	
-	/////////////////////////////////////
-		if(Z<Zant)
-	{
-		difZ = (Zant - Z);
-	}
-	else
-	{
-		difZ = (Z - Zant);
-	}
-	/*
-	if((difX>=X_TH)||(difY>=Y_TH)||(difZ>=Z_TH))
 	{
 		GPIO_WriteHigh(GPIOC, Led);
 	}
-	else
-	{
-		GPIO_WriteLow(GPIOC, Led);
-	}
-	*/
-	Serial_print_string ("X: ");
-	Serial_print_int(X);
-	Serial_newtab();
-	Serial_print_string (" Y: ");
-	Serial_print_int(Y);
-	Serial_newtab();
-	Serial_print_string (" Z: ");
-	Serial_print_int(Z);
-	Serial_newline();
+	
 	Xant = X;
 	Yant = Y;
 	Zant = Z;
