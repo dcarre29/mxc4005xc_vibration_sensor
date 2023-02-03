@@ -124,7 +124,7 @@ main()
 	Serial_begin(9600);
 	GPIO_setup();
 	mxc400_init();
-	/*
+	
 	X_Hant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
 	X_Lant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_LOWER);
 		
@@ -137,7 +137,7 @@ main()
 	Xant = (X_Hant<<4)+(X_Lant>>4);
 	Yant = (Y_Hant<<4)+(Y_Lant>>4);
 	Zant = (Z_Hant<<4)+(Z_Lant>>4);
-	*/
+	
 while (1)
 {
 	
