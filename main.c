@@ -63,52 +63,6 @@ void GPIO_setup(void)
 
 
 
-void delay (int ms) //Function Definition 
-{
-int i =0 ;
-int j=0;
-for (i=0; i<=ms; i++)
-{
-	for (j=0; j<120; j++) // Nop = Fosc/4
-	_asm("nop"); //Perform no operation //assembly code  
-}
-}
-
-void mxc400_init()
-{
-	I2C_DeInit();
-	I2C_Setup(MXC4005_I2C_ADDRESS);
-	
-	//Borrado de los registros de interrupcion
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_INT_CLR0, MXC4005_REG_INT_BITCLR);
-	delay(150);
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_INT_CLR1, MXC4005_REG_INT_BITCLR);
-	delay(150);
-	//Configuraci?n de interrupciones
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_INT_MASK0, MXC4005_REG_INT_ENABLE_MASK0);
-	delay(150);
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_INT_MASK1, MXC4005_REG_INT_MASK1_BIT_DRDYE);
-	delay(150);
-	
-	//Configuracion de DETECTION
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_DETECTION, MXC4005_REG_INT_BITCLR);
-	
-	//Configuracion Operational mode
-	I2C_ByteWrite(MXC4005_I2C_ADDRESS, MXC4005_REG_CONTROL, MXC4005_REG_INT_BITCLR);
-
-}
-
-uint16_t convert(uint16_t v)
-{
-	if(v >= 2048)
-	{
-		v = v - 1;
-		v = ~ v;
-		v = v & 4095;
-	}
-	return v;
-}
-
 uint16_t diference(uint16_t current, uint16_t ant )
 {
 	uint16_t dif = 0;
@@ -141,10 +95,10 @@ void clock_setup(void)
 main()
 {
 	clock_setup();
-	Serial_begin(9600);
+	//Serial_begin(9600);
 	GPIO_setup();
 	GPIO_WriteLow(GPIOC, signal);
-	
+	delay(400);
 	mxc400_init();
 	
 	X_Hant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
@@ -156,16 +110,13 @@ main()
 	Z_Hant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_UPPER);
 	Z_Lant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_LOWER);
 	
-	Xant = (X_Hant<<4)+(X_Lant>>4);
-	Yant = (Y_Hant<<4)+(Y_Lant>>4);
-	Zant = (Z_Hant<<4)+(Z_Lant>>4);
+	Xant = convert(X_Hant, X_Lant);
+	Yant = convert(Y_Hant, Y_Lant);
+	Zant = convert(Z_Hant, Z_Lant);
 	
 	
 while (1)
-{	
-	
-	
-	
+{		
 	X_H = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
 	X_L = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_LOWER);
 
@@ -175,20 +126,13 @@ while (1)
 	Z_H = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_UPPER);
 	Z_L = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_ZOUT_LOWER);
 	
-	X = (X_H << 4)+(X_L >> 4);
-	Y = (Y_H<<4)+( Y_L >>4);
-	Z = (Z_H<<4)+( Z_L >>4);
-	
-	X = convert(X);
-	Y = convert(Y);
-	Z = convert(Z);
+	X = convert(X_H, X_L);
+	Y = convert(Y_H, Y_L);
+	Z = convert(Z_H, Z_L);
 	
 	difX = diference(X, Xant);
 	difY = diference(Y, Yant);
 	difZ = diference(Z, Zant);
-
-	
-
 /*
 	Serial_print_string ("X: ");
 	Serial_print_int(difX);
@@ -209,14 +153,12 @@ while (1)
 	else
 	{
 		GPIO_WriteHigh(GPIOC, Led);
-		GPIO_WriteLow(GPIOC, signal);
-		
+		GPIO_WriteLow(GPIOC, signal);		
 	}
 	
 	Xant = X;
 	Yant = Y;
 	Zant = Z;
-
 }
 }
 
