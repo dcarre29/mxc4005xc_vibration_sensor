@@ -12,46 +12,7 @@
 #include "stm8s103_serial.h"
 
 
-//Defines
-#define SDA_pin GPIO_PIN_5
-#define SCL_pin GPIO_PIN_4
-#define Led GPIO_PIN_3
-#define signal GPIO_PIN_6
-
-//Vibration sensor parameters
-#define X_TH 50			
-#define Y_TH 50
-#define Z_TH 80
-
-//Global variables
-int16_t X_L = 0;
-int16_t X_H = 0;
-int16_t Y_L = 0;
-int16_t Y_H = 0;
-int16_t Z_L = 0;
-int16_t Z_H = 0;
-
-int16_t X = 0;
-int16_t Y = 0;
-int16_t Z = 0;
-
-int16_t X_Lant = 0;
-int16_t X_Hant = 0;
-int16_t Y_Lant = 0;
-int16_t Y_Hant = 0;
-int16_t Z_Lant = 0;
-int16_t Z_Hant = 0;
-
-int16_t Xant = 0;
-int16_t Yant = 0;
-int16_t Zant = 0;
-
-int16_t difX = 0;
-int16_t difY = 0;
-int16_t difZ = 0;
-uint32_t time_old, time_now = 0;
-uint8_t pp= 0;
-
+//Inicializacion de puerto B y C
 void GPIO_setup(void)
 {   
 	GPIO_DeInit(GPIOB);
@@ -61,44 +22,30 @@ void GPIO_setup(void)
 	GPIO_Init(GPIOC, signal, GPIO_MODE_OUT_PP_LOW_SLOW);
 }
 
-
-
-uint16_t diference(uint16_t current, uint16_t ant )
-{
-	uint16_t dif = 0;
-	if(current < ant)
-	{
-		dif = (ant - current);
-	}
-	else
-	{
-		dif = (current - ant);
-	}
-	return dif;
-}
+//Configuración del clock interno a 8Mhz.
+//Se habilita el clock para I2c.
 void clock_setup(void)
 {
-	CLK_DeInit();
-	
-	CLK_HSECmd(DISABLE);
-	CLK_LSICmd(DISABLE);
-	CLK_HSICmd(DISABLE);
-	while(CLK_GetFlagStatus(CLK_FLAG_HSIRDY)== FALSE);
-	
-	CLK_ClockSwitchCmd(ENABLE);
-	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV8);
-	CLK_SYSCLKConfig(CLK_PRESCALER_CPUDIV4);
-	
-	CLK_ClockSwitchConfig(CLK_SWITCHMODE_AUTO, CLK_SOURCE_HSI, DISABLE, CLK_CURRENTCLOCKSTATE_ENABLE);
-	
+     CLK_DeInit();
+		 //CLK_HSECmd(DISABLE);
+		 //CLK_LSICmd(DISABLE);
+     CLK_HSICmd(ENABLE);
+     while(CLK_GetFlagStatus(CLK_FLAG_HSIRDY) == FALSE);
+     CLK_ClockSwitchCmd(ENABLE);
+     CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+     CLK_SYSCLKConfig(CLK_PRESCALER_CPUDIV8);               
+     CLK_ClockSwitchConfig(CLK_SWITCHMODE_AUTO, CLK_SOURCE_HSI, DISABLE, CLK_CURRENTCLOCKSTATE_ENABLE);         
+     CLK_PeripheralClockConfig(CLK_PERIPHERAL_I2C, ENABLE);
 }
+
 main()
 {
+	
+	delay(T_wait);
 	clock_setup();
 	//Serial_begin(9600);
 	GPIO_setup();
 	GPIO_WriteLow(GPIOC, signal);
-	delay(400);
 	mxc400_init();
 	
 	X_Hant = I2C_ByteRead(MXC4005_I2C_ADDRESS, MXC4005_REG_XOUT_UPPER);
@@ -113,7 +60,6 @@ main()
 	Xant = convert(X_Hant, X_Lant);
 	Yant = convert(Y_Hant, Y_Lant);
 	Zant = convert(Z_Hant, Z_Lant);
-	
 	
 while (1)
 {		
@@ -148,7 +94,7 @@ while (1)
 	{
 		GPIO_WriteLow(GPIOC, Led);
 		GPIO_WriteHigh(GPIOC, signal);
-		delay(100);
+		delay(T_signal);
 	}
 	else
 	{
